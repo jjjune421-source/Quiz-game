@@ -211,6 +211,21 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   .options-grid{grid-template-columns:1fr;}
   .quiz-opts{grid-template-columns:1fr;}
 }
+/* 스페셜/타이브레이커 */
+.special-banner{text-align:center;font-family:'Black Han Sans',sans-serif;font-size:clamp(14px,3vw,22px);
+  padding:10px 20px;border-radius:12px;margin-bottom:4px;animation:pulse 1s ease infinite alternate;}
+.special-banner.special{background:linear-gradient(135deg,rgba(255,215,0,.2),rgba(255,140,0,.15));
+  border:1px solid rgba(255,215,0,.4);color:var(--gold);}
+.special-banner.tiebreaker{background:linear-gradient(135deg,rgba(255,71,87,.2),rgba(124,107,255,.15));
+  border:1px solid rgba(255,71,87,.4);color:#ff6b9d;}
+@keyframes pulse{from{opacity:.7;transform:scale(.98)}to{opacity:1;transform:scale(1.01)}}
+.tiebreaker-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;
+  align-items:center;justify-content:center;z-index:150;backdrop-filter:blur(10px);flex-direction:column;gap:20px;padding:32px;}
+.tiebreaker-overlay.active{display:flex;}
+.tb-title{font-family:'Black Han Sans',sans-serif;font-size:clamp(20px,5vw,40px);text-align:center;
+  background:linear-gradient(135deg,#ff4757,#7c6bff);-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text;}
+.tb-sub{color:var(--muted);font-size:14px;text-align:center;}
 </style>
 </head>
 <body>
@@ -218,6 +233,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 <div class="conn-badge loading" id="conn-badge">🔄 연결 중...</div>
 <div class="countdown-overlay" id="countdown-overlay">
   <div class="countdown-num" id="countdown-num">3</div>
+</div>
+
+<!-- 타이브레이커 진입 오버레이 -->
+<div class="tiebreaker-overlay" id="tiebreaker-overlay">
+  <div style="font-size:60px;animation:pulse 0.6s ease infinite alternate;">⚡</div>
+  <div class="tb-title">공동 1위 발생!</div>
+  <div style="font-family:'Black Han Sans',sans-serif;font-size:clamp(18px,4vw,32px);color:var(--gold);text-align:center;" id="tb-tied-names"></div>
+  <div style="color:var(--muted);font-size:14px;text-align:center;">타이브레이커 문제를 준비하세요!</div>
 </div>
 
 <!-- ROLE -->
@@ -369,41 +392,46 @@ const DB = 'quiz_game';
 // ── 퀴즈 데이터 (불멸의 그대에게 1화) ──
 const DEFAULT_QUIZ = [
   {
-    q: "불사(후시)는 처음에 지상에 어떤 모습으로 던져졌나요?",
-    opts: ["돌", "구체(공)", "이끼", "늑대"],
-    ans: 1
+    q: "불사는 처음에 지상에 어떤 모습으로 던져졌나요?",
+    opts: ["늑대", "돌", "이끼", "구체(공)"],
+    ans: 3
   },
   {
     q: "소년이 기르던 늑대의 이름은 무엇인가요?",
-    opts: ["후시", "조안", "니난", "파로나"],
-    ans: 1
-  },
-  {
-    q: "소년이 낙원을 찾아 떠난 마을 사람들을 뒤따라가려 했을 때, 실제로 발견한 것은?",
-    opts: ["마을 사람들이 행복하게 사는 낙원", "앞으로 가지 말라는 표식과 무덤들", "마을 사람들이 길을 잃은 현장", "텅 빈 광야"],
-    ans: 1
-  },
-  {
-    q: "소년이 낙원을 찾아 떠나는 도중 입은 부상은?",
-    opts: ["눈보라에 동상을 입었다", "얼음을 잘못 밟아 강에 빠지고 다리에 나무 파편이 박혔다", "늑대에게 물렸다", "바위에서 굴러 떨어졌다"],
-    ans: 1
+    opts: ["파로나", "승우크", "후시", "조안"],
+    ans: 3
   },
   {
     q: "불사가 늑대로 변신할 수 있었던 이유는?",
-    opts: ["관찰자가 직접 변신시켜줘서", "소년이 소원을 빌어서", "죽어가는 늑대가 이끼 상태의 불사 위에서 숨을 거뒀기 때문에", "늑대의 피가 불사에게 닿아서"],
-    ans: 2
+    opts: ["죽어가는 늑대가 이끼 상태의 불사 위에서 숨을 거뒀기 때문에", "늑대의 피가 불사에게 닿아서", "소년이 소원을 빌어서", "늑대가 소원을 빌어서"],
+    ans: 0
   },
   {
     q: "소년이 죽기 전 불사에게 한 마지막 부탁은?",
-    opts: ["남쪽으로 가달라", "자신을 줄곧 기억해 달라", "마을을 지켜달라", "늑대를 돌봐달라"],
-    ans: 1
+    opts: ["마을을 지켜달라", "늑대를 돌봐달라", "남쪽으로 가달라", "자신을 줄곧 기억해 달라"],
+    ans: 3
   },
   {
     q: "1화에서 불사가 소년의 모습으로 변신한 뒤 한 행동은?",
-    opts: ["마을에서 계속 살았다", "쓰러진 소년을 의자에 앉혀준 후 떠났다", "늑대를 찾아 나섰다", "남쪽 마을 사람들을 따라갔다"],
+    opts: ["늑대를 찾아 나섰다", "쓰러진 소년을 의자에 앉혀준 후 떠났다", "남쪽 마을 사람들을 따라갔다", "마을에서 계속 살았다"],
     ans: 1
+  },
+  {
+    q: "🌟 SPECIAL 🌟 사회자 이승준의 첫사랑은 몇 살 때 시작했을까?",
+    opts: ["8살", "11살", "사랑을 해본 적이 없다", "그걸 왜 알아야 하는가"],
+    ans: 1,
+    special: true
   }
 ];
+
+// ── 타이브레이커 문제 ──
+const TIEBREAKER = {
+  q: "⚡ TIEBREAKER ⚡ 사회자 이승준의 오늘 기분은 어떨까요?",
+  opts: ["나쁨", "조금 나쁨", "조금 좋음", "매우 좋음", "대체 그걸 왜 알아야 하는가"],
+  ans: 4,
+  special: true,
+  tiebreaker: true
+};
 
 // ── 상태 ──
 let role = null, myName = '', quizData = [], currentQ = 0;
@@ -477,7 +505,7 @@ window.startLobby = async function() {
   await set(gRef(), { phase:'lobby', currentQ:0, quizData, scores:{}, players:{}, answers:{}, qResult:null });
   currentQ = 0;
 
-  const joinUrl = 'https://jjjune421-source.github.io/quiz-game/?role=player';
+  const joinUrl = 'https://jjjune421-source.github.io/Quiz-game/?role=player';
   window._joinUrl = joinUrl;
   document.getElementById('join-url-display').textContent = joinUrl;
 
@@ -520,13 +548,30 @@ async function hostStartQuestion() {
   await update(gRef(), { phase:'question', currentQ, answers:{}, qResult:null, quizData });
 
   const q = quizData[currentQ];
-  document.getElementById('host-q-num').textContent = `문제 ${currentQ+1} / ${quizData.length}`;
+  const isTB = q.tiebreaker || false;
+  const isSpecial = q.special || false;
+  document.getElementById('host-q-num').textContent = isTB ? '⚡ TIEBREAKER' : `문제 ${currentQ+1} / ${quizData.length}`;
   document.getElementById('host-q-text').textContent = q.q;
 
+  // 스페셜 배너
+  let bannerEl = document.getElementById('special-banner');
+  if (!bannerEl) {
+    bannerEl = document.createElement('div');
+    bannerEl.id = 'special-banner';
+    document.getElementById('host-q-text').before(bannerEl);
+  }
+  if (isTB) { bannerEl.textContent = '⚡ TIEBREAKER — 공동 1위 결정전!'; bannerEl.className='special-banner tiebreaker'; bannerEl.style.display='block'; }
+  else if (isSpecial) { bannerEl.textContent = '🌟 SPECIAL QUESTION 🌟'; bannerEl.className='special-banner special'; bannerEl.style.display='block'; }
+  else { bannerEl.style.display='none'; }
+
+  const LETTERS = ['①','②','③','④','⑤'];
   const grid = document.getElementById('host-options-grid');
+  // 5지선다면 1열로
+  if (q.opts.length > 4) grid.style.gridTemplateColumns = '1fr';
+  else grid.style.gridTemplateColumns = '';
   grid.innerHTML = q.opts.map((o,i)=>`
     <div class="option-box" id="host-opt-${i}">
-      <span class="opt-letter">${'①②③④'[i]}</span>
+      <span class="opt-letter">${LETTERS[i]}</span>
       <span class="opt-text">${o}</span>
     </div>`).join('');
 
@@ -621,6 +666,12 @@ function hostShowResult(q, correctIdx, answers, scores) {
 }
 
 window.nextQuestion = async function() {
+  // 타이브레이커 문제였으면 바로 최종 결과
+  if (quizData[currentQ]?.tiebreaker) {
+    const snap = await get(sRef());
+    await hostShowTiebreakerResult({}, snap.val()||{});
+    return;
+  }
   currentQ++;
   if(currentQ >= quizData.length) await hostShowFinal();
   else await hostStartQuestion();
@@ -629,6 +680,40 @@ window.nextQuestion = async function() {
 async function hostShowFinal() {
   const snap = await get(sRef());
   const scores = snap.val()||{};
+  const sorted = Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+  const topScore = sorted[0]?.[1] || 0;
+  const topPlayers = sorted.filter(([,s])=>s===topScore);
+
+  // 공동 1위가 2명 이상이면 타이브레이커!
+  if (topPlayers.length >= 2) {
+    const names = topPlayers.map(([n])=>n).join(' vs ');
+    document.getElementById('tb-tied-names').textContent = `🏆 ${names}`;
+    document.getElementById('tiebreaker-overlay').classList.add('active');
+    setTimeout(() => {
+      document.getElementById('tiebreaker-overlay').classList.remove('active');
+      hostStartTiebreaker();
+    }, 3500);
+    return;
+  }
+
+  const [cName,cScore] = sorted[0]||['—',0];
+  await update(gRef(), { phase:'final' });
+  document.getElementById('champion-name').textContent = cName;
+  document.getElementById('champion-score').textContent = `총 ${cScore}점`;
+  renderBoard('final-scoreboard', scores);
+  showScreen('screen-final');
+  launchConfetti();
+}
+
+async function hostStartTiebreaker() {
+  // 타이브레이커 문제를 quizData에 임시 추가
+  quizData.push(TIEBREAKER);
+  currentQ = quizData.length - 1;
+  await hostStartQuestion();
+}
+
+async function hostShowTiebreakerResult(answers, scores) {
+  // 타이브레이커 후 진짜 최종 결과
   const sorted = Object.entries(scores).sort((a,b)=>b[1]-a[1]);
   const [cName,cScore] = sorted[0]||['—',0];
   await update(gRef(), { phase:'final' });
@@ -678,14 +763,17 @@ function playerOnQuestion(g) {
   currentQ = g.currentQ;
   const q = g.quizData[currentQ];
 
-  document.getElementById('player-q-num').textContent = `QUESTION ${currentQ+1} / ${g.quizData.length}`;
+  const isTB = q.tiebreaker || false;
+  const isSpecial = q.special || false;
+  document.getElementById('player-q-num').textContent = isTB ? '⚡ TIEBREAKER' : isSpecial ? '🌟 SPECIAL 🌟' : `QUESTION ${currentQ+1} / ${g.quizData.length}`;
   document.getElementById('player-q-text').textContent = q.q;
   document.getElementById('player-score-display').textContent = (g.scores||{})[myName]||0;
 
+  const LETTERS = ['①','②','③','④','⑤'];
   const optsEl = document.getElementById('player-opts');
   optsEl.innerHTML = q.opts.map((o,i)=>`
     <div class="player-opt" id="popt_${i}" onclick="castAnswer(${i})">
-      <span class="player-opt-letter">${'①②③④'[i]}</span>
+      <span class="player-opt-letter">${LETTERS[i]}</span>
       <span class="player-opt-text">${o}</span>
     </div>`).join('');
 
